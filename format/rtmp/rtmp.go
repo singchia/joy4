@@ -8,16 +8,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/nareix/joy4/utils/bits/pio"
-	"github.com/nareix/joy4/av"
-	"github.com/nareix/joy4/av/avutil"
-	"github.com/nareix/joy4/format/flv"
-	"github.com/nareix/joy4/format/flv/flvio"
 	"io"
 	"net"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/nareix/joy4/av"
+	"github.com/nareix/joy4/av/avutil"
+	"github.com/nareix/joy4/format/flv"
+	"github.com/nareix/joy4/format/flv/flvio"
+	"github.com/nareix/joy4/utils/bits/pio"
 )
 
 var Debug bool
@@ -105,6 +106,28 @@ func (self *Server) ListenAndServe() (err error) {
 	for {
 		var netconn net.Conn
 		if netconn, err = listener.Accept(); err != nil {
+			return
+		}
+
+		if Debug {
+			fmt.Println("rtmp: server: accepted")
+		}
+
+		conn := NewConn(netconn)
+		conn.isserver = true
+		go func() {
+			err := self.handleConn(conn)
+			if Debug {
+				fmt.Println("rtmp: server: client closed err:", err)
+			}
+		}()
+	}
+}
+
+func (self *Server) Serve(l net.Listener) (err error) {
+	for {
+		var netconn net.Conn
+		if netconn, err = l.Accept(); err != nil {
 			return
 		}
 
